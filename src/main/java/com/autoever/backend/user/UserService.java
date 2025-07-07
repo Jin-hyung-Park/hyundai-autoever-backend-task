@@ -1,9 +1,12 @@
 package com.autoever.backend.user;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,6 +25,8 @@ public class UserService {
     // 토큰과 사용자 ID를 매핑하는 인메모리 저장소 (로그인 세션 대체)
     // key: 발급된 토큰(UUID), value: 사용자 id
     private final Map<String, Long> tokenStore = new ConcurrentHashMap<>();
+    // RestTemplate를 외부에서 주입받을 수 있도록 필드로 선언
+    private final RestTemplate restTemplate;
 
     /**
      * 회원가입 처리
@@ -123,5 +128,75 @@ public class UserService {
     public List<User> findAll(int page, int size) {
         // PageRequest.of(page, size)로 페이징 처리
         return userRepository.findAll(org.springframework.data.domain.PageRequest.of(page, size)).getContent();
+    }
+
+    /**
+     * 연령대별 카카오톡/문자 메시지 발송
+     * @param ageGroup 연령대(예: "20대", "30대")
+     * @param message  메시지 본문(첫줄 자동 생성)
+     * @return 발송 시도 인원 수
+     */
+    public int sendMessageToAgeGroup(String ageGroup, String message) {
+        List<User> users = userRepository.findAll();
+        int nowYear = LocalDate.now().getYear();
+        int minAge = 0, maxAge = 200;
+        if (ageGroup != null && ageGroup.endsWith("대")) {
+            try {
+                int base = Integer.parseInt(ageGroup.replace("대", ""));
+                minAge = base;
+                maxAge = base + 9;
+            } catch (Exception ignored) {}
+        }
+        int successCount = 0;
+        int kakaoCount = 0;
+        int smsCount = 0;
+        for (User user : users) {
+            // 주민등록번호 앞 2자리로 출생년도 추정 (예: 900101-1234567 → 1990년생)
+            String regNo = user.getRegNo();
+            int birthYear = 1900;
+            if (regNo != null && regNo.length() >= 2) {
+                int yy = Integer.parseInt(regNo.substring(0, 2));
+                int gender = regNo.length() > 7 ? Character.getNumericValue(regNo.charAt(7)) : 1;
+                if (gender == 1 || gender == 2) birthYear = 1900 + yy;
+                else if (gender == 3 || gender == 4) birthYear = 2000 + yy;
+            }
+            int age = nowYear - birthYear + 1;
+            int ageGroupNum = (age / 10) * 10;
+            if (ageGroupNum < minAge || ageGroupNum > maxAge) continue;
+            // 메시지 첫줄 생성
+            String fullMsg = user.getName() + "님, 안녕하세요. 현대 오토에버입니다.\n" + message;
+            boolean kakaoSent = false;
+            // 카카오톡 메시지 발송 (분당 100회 제한)
+            if (kakaoCount < 100) {
+                try {
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setBasicAuth("autoever", "1234");
+                    headers.setContentType(MediaType.APPLICATION_JSON);
+                    String body = String.format("{\"phone\":\"%s\",\"message\":\"%s\"}", user.getPhone(), fullMsg.replace("\n", " "));
+                    HttpEntity<String> entity = new HttpEntity<>(body, headers);
+                    ResponseEntity<String> resp = restTemplate.postForEntity("http://localhost:8081/kakaotalk-messages", entity, String.class);
+                    if (resp.getStatusCode().is2xxSuccessful()) {
+                        kakaoSent = true;
+                        kakaoCount++;
+                    }
+                } catch (Exception ignored) {}
+            }
+            // 실패 시 SMS 발송 (분당 500회 제한)
+            if (!kakaoSent && smsCount < 500) {
+                try {
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setBasicAuth("autoever", "5678");
+                    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+                    String body = "message=" + fullMsg.replace("\n", " ");
+                    HttpEntity<String> entity = new HttpEntity<>(body, headers);
+                    ResponseEntity<String> resp = restTemplate.postForEntity("http://localhost:8082/sms?phone=" + user.getPhone(), entity, String.class);
+                    if (resp.getStatusCode().is2xxSuccessful()) {
+                        smsCount++;
+                    }
+                } catch (Exception ignored) {}
+            }
+            successCount++;
+        }
+        return successCount;
     }
 }
