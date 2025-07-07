@@ -12,7 +12,7 @@
 
 1. **프로젝트 클론**
    ```sh
-   git clone https://github.com/Jin-hyung-Park/hyundai-autoever-backend-task.git
+   git clone https://github.com/Jin-hyung-Park/hyundai-autoever-backend-task.git 
    cd hyundai-autoever-backend-task-master
    ```
 
