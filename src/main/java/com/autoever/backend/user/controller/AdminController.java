@@ -2,10 +2,7 @@ package com.autoever.backend.user.controller;
 
 import com.autoever.backend.user.User;
 import com.autoever.backend.user.UserService;
-<<<<<<< HEAD
 import com.autoever.backend.user.dto.MessageRequest;
-=======
->>>>>>> dd601acbea36818162c5d69332b28f7aaf6f2fa1
 import com.autoever.backend.user.dto.UpdateRequest;
 import com.autoever.backend.user.dto.UserDto;
 import lombok.RequiredArgsConstructor;
@@ -63,7 +60,6 @@ public class AdminController {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
-<<<<<<< HEAD
 
     /**
      * 연령대별 카카오톡/문자 메시지 발송 API
@@ -75,6 +71,4 @@ public class AdminController {
         int successCount = userService.sendMessageToAgeGroup(request.getAgeGroup(), request.getMessage());
         return ResponseEntity.ok(successCount + "명에게 메시지 발송 시도 완료");
     }
-=======
->>>>>>> dd601acbea36818162c5d69332b28f7aaf6f2fa1
 }
