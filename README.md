@@ -34,7 +34,7 @@
 
 ## API 테스트 예시 (curl)
 
-### 회원가입
+### 1. 회원가입
 ```sh
 curl -X POST http://localhost:8080/api/users/signup \
   -H "Content-Type: application/json" \
@@ -48,7 +48,7 @@ curl -X POST http://localhost:8080/api/users/signup \
   }'
 ```
 
-### 로그인 (토큰 발급)
+### 2. 로그인 (토큰 발급)
 ```sh
 curl -X POST http://localhost:8080/api/users/login \
   -H "Content-Type: application/json" \
@@ -58,21 +58,21 @@ curl -X POST http://localhost:8080/api/users/login \
   }'
 ```
 
-### 내 정보 조회
+### 3. 내 정보 조회
 ```sh
 curl -X GET http://localhost:8080/api/users/me \
   -H "X-Auth-Token: <로그인_토큰>"
 ```
 
-### 관리자 API (Basic 인증: admin/1212)
+### 4. 관리자 API (Basic 인증: admin/1212) 테스트
 
-#### 회원 목록 조회
+#### 가. 회원 목록 조회
 ```sh
 curl -X GET "http://localhost:8080/api/admin/users?page=0&size=10" \
   -u admin:1212
 ```
 
-#### 회원 정보 수정
+#### 나. 회원 정보 수정
 ```sh
 curl -X PUT http://localhost:8080/api/admin/users/1 \
   -u admin:1212 \
@@ -83,16 +83,84 @@ curl -X PUT http://localhost:8080/api/admin/users/1 \
   }'
 ```
 
-#### 회원 삭제
+#### 다. 회원 삭제
 ```sh
 curl -X DELETE http://localhost:8080/api/admin/users/1 \
   -u admin:1212
 ```
 
+### 5. 연령대별 테스트 데이터 생성(회원가입)
+아래 예시를 참고하여 20대, 30대, 40대, 50대 회원을 각각 1명씩 생성할 수 있습니다.
+
+##### 가. 20대 회원 생성
+```sh
+curl -X POST http://localhost:8080/api/users/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "account": "user20",
+    "password": "1234",
+    "name": "성춘향",
+    "regNo": "040101-1234567",
+    "phone": "010-2020-2020",
+    "address": "서울시 20구"
+  }'
+```
+##### 나. 30대 회원 생성
+```sh
+curl -X POST http://localhost:8080/api/users/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "account": "user30",
+    "password": "1234",
+    "name": "이몽령",
+    "regNo": "950101-1234567",
+    "phone": "010-3030-3030",
+    "address": "서울시 30구"
+  }'
+```
+##### 다. 40대 회원 생성
+```sh
+curl -X POST http://localhost:8080/api/users/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "account": "user40",
+    "password": "1234",
+    "name": "호날두",
+    "regNo": "850101-1234567",
+    "phone": "010-4040-4040",
+    "address": "서울시 40구"
+  }'
+```
+##### 라. 50대 회원 생성
+```sh
+curl -X POST http://localhost:8080/api/users/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "account": "user50",
+    "password": "1234",
+    "name": "조단",
+    "regNo": "750101-1234567",
+    "phone": "010-5050-5050",
+    "address": "서울시 50구"
+  }'
+```
+
+#### 마. 연령대별 메시지 발송 (관리자)
+```sh
+curl -X POST "http://localhost:8080/api/admin/users/send-message" \
+  -H "Content-Type: application/json" \
+  -u admin:1212 \
+  -d '{"ageGroup":"30대","message":"이벤트 안내 메시지입니다."}'
+```
+- `ageGroup` : "20대", "30대", "40대", "50대" 등 지정 가능
+- `message` : 원하는 메시지 본문 입력
+- 관리자 인증 필요: `-u admin:1212`
+
+- 연령대별 메시지 발송 기능은 카카오톡/문자 API(모의)와 연동되며, 분당 호출 제한 및 실패 시 대체 발송 로직이 적용되어 있습니다.
+
 ## 참고 사항
 - 서버를 재시작하면 H2 메모리 DB의 데이터가 모두 초기화됩니다. (테스트 시 회원가입부터 진행 필요)
 - 관리자 API는 Basic 인증(admin/1212) 필요
-- 모든 API 상세 설명 및 예시는 `requirements.txt`에도 포함되어 있습니다.
 
 ---
 
